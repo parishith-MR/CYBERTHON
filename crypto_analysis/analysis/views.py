@@ -96,7 +96,8 @@ def home(request):
             })
         
         # Generate new visualization only if we have transactions
-        graph_success = generate_spider_graph(transactions)
+        # Pass the wallet_address as central_address
+        graph_success = generate_spider_graph(transactions, central_address=wallet_address)
         
         # Analyze transactions
         analysis_results = analyze_transactions(wallet_address, transactions)
@@ -112,39 +113,170 @@ def home(request):
     
     return render(request, "analysis/home.html")
 
-def generate_spider_graph(transactions):
-    """Generate a spider graph visualization."""
+def generate_spider_graph(transactions, central_address, history=None):
+    """Generate an interactive graph visualization with navigation history."""
     if not transactions:
         return False
     
-    G = nx.DiGraph()
+    net = Network(height="600px", width="100%", directed=True, notebook=False)
+    
+    # Add navigation controls to the HTML
+    net.html = """
+    <div class="navigation-controls" style="position: absolute; top: 10px; left: 10px; z-index: 999;">
+        <button id="backButton" onclick="goBack()" style="padding: 5px 10px; margin-right: 5px;" disabled>
+            ← Back
+        </button>
+        <button id="forwardButton" onclick="goForward()" style="padding: 5px 10px;" disabled>
+            Forward →
+        </button>
+    </div>
+    """ + net.html
+    
+    # Add central node
+    net.add_node(central_address.lower(), 
+                 color='#ff0000',
+                 size=30,
+                 title=f"Analyzed Wallet: {central_address}",
+                 custom_properties={"address": central_address.lower()})
+    
+    # Track unique addresses and their transactions
+    address_counts = {}
+    transaction_details = {}
     
     for tx in transactions:
-        sender = tx.get("from_address")
-        receiver = tx.get("to_address")
-        value = float(tx.get("value", 0)) / 10**18  # Convert to ETH
+        sender = tx.get("from_address", "").lower()
+        receiver = tx.get("to_address", "").lower()
+        value = float(tx.get("value", "0")) / 10**18
+        timestamp = tx.get("block_timestamp")
         
-        if sender and receiver:
-            sender_node = sender.lower()
-            receiver_node = receiver.lower()
-            G.add_node(sender_node, color='blue', title=f"Wallet: {sender_node}")
-            G.add_node(receiver_node, color='blue', title=f"Wallet: {receiver_node}")
-            G.add_edge(sender_node, receiver_node, value=value, title=f"{value:.4f} ETH")
-
-    net = Network(height="600px", width="100%", directed=True)
-    net.from_nx(G)
-    net.set_options("""
-    {
-        "physics": {
-            "forceAtlas2Based": {
-                "gravitationalConstant": -100,
-                "springLength": 100
-            },
-            "minVelocity": 0.75,
-            "solver": "forceAtlas2Based"
+        # Update address counts and transaction details
+        address_counts[sender] = address_counts.get(sender, 0) + 1
+        address_counts[receiver] = address_counts.get(receiver, 0) + 1
+        
+        key = f"{sender}-{receiver}"
+        if key not in transaction_details:
+            transaction_details[key] = []
+        transaction_details[key].append({
+            "value": value,
+            "timestamp": timestamp,
+            "hash": tx.get("hash")
+        })
+        
+        # Add nodes
+        if sender not in net.nodes:
+            net.add_node(sender,
+                        color='#1f77b4',
+                        title=f"Address: {sender}\nTransactions: {address_counts[sender]}",
+                        custom_properties={"address": sender})
+            
+        if receiver not in net.nodes:
+            net.add_node(receiver,
+                        color='#1f77b4',
+                        title=f"Address: {receiver}\nTransactions: {address_counts[receiver]}",
+                        custom_properties={"address": receiver})
+        
+        # Add edge with accumulated transaction details
+        edge_details = transaction_details[key]
+        total_value = sum(tx["value"] for tx in edge_details)
+        edge_title = f"Total: {total_value:.4f} ETH\nTransactions: {len(edge_details)}"
+        
+        net.add_edge(sender, receiver, 
+                    title=edge_title,
+                    value=min(total_value, 10),
+                    arrows='to')
+    
+    # Add interaction handling
+    net.options.interaction = {
+        "hover": True,
+        "navigationButtons": True,
+        "keyboard": {
+            "enabled": True,
+            "speed": {"x": 10, "y": 10, "zoom": 0.1},
+            "bindToWindow": True
         }
     }
-    """)
+    
+    # Add custom JavaScript for node interaction and navigation
+    net.html += """
+    <script>
+    let addressHistory = [];
+    let currentIndex = -1;
+    let network;
+    
+    function initNetwork() {
+        network = document.getElementById('mynetwork').visNetwork;
+        
+        network.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const node = network.body.data.nodes.get(nodeId);
+                if (node.custom_properties && node.custom_properties.address) {
+                    exploreNode(node.custom_properties.address);
+                }
+            }
+        });
+    }
+    
+    function exploreNode(address) {
+        // Remove forward history if we're not at the end
+        if (currentIndex < addressHistory.length - 1) {
+            addressHistory = addressHistory.slice(0, currentIndex + 1);
+        }
+        
+        // Add new address to history
+        addressHistory.push(address);
+        currentIndex++;
+        
+        // Update buttons
+        updateNavigationButtons();
+        
+        // Fetch and display new transactions
+        fetchNodeTransactions(address);
+    }
+    
+    function goBack() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            fetchNodeTransactions(addressHistory[currentIndex]);
+            updateNavigationButtons();
+        }
+    }
+    
+    function goForward() {
+        if (currentIndex < addressHistory.length - 1) {
+            currentIndex++;
+            fetchNodeTransactions(addressHistory[currentIndex]);
+            updateNavigationButtons();
+        }
+    }
+    
+    function updateNavigationButtons() {
+        document.getElementById('backButton').disabled = currentIndex <= 0;
+        document.getElementById('forwardButton').disabled = currentIndex >= addressHistory.length - 1;
+    }
+    
+    function fetchNodeTransactions(address) {
+        fetch('/analyze_node/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `wallet_address=${address}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update the graph
+                document.getElementById('graphFrame').src = '/static/graph.html?t=' + new Date().getTime();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    // Initialize network when ready
+    window.addEventListener('load', initNetwork);
+    </script>
+    """
     
     try:
         net.save_graph("static/graph.html")
@@ -152,6 +284,79 @@ def generate_spider_graph(transactions):
     except Exception as e:
         print(f"Error saving graph: {e}")
         return False
+
+@csrf_exempt
+def analyze_node(request):
+    """Handle requests to analyze specific nodes when clicked."""
+    if request.method == "POST":
+        wallet_address = request.POST.get("wallet_address", "").strip()
+        
+        if not wallet_address:
+            return JsonResponse({
+                "status": "error",
+                "message": "Wallet address is required"
+            })
+        
+        # Fetch transactions for the clicked node
+        transactions = fetch_transactions(wallet_address)
+        
+        if not transactions:
+            return JsonResponse({
+                "status": "warning",
+                "message": "No transactions found for this address",
+                "data": {
+                    "wallet_address": wallet_address,
+                    "total_transactions": 0,
+                    "transaction_volume": 0
+                }
+            })
+        
+        # Generate new visualization
+        graph_success = generate_spider_graph(transactions, wallet_address)
+        
+        # Analyze transactions
+        analysis_results = analyze_transactions(wallet_address, transactions)
+        
+        return JsonResponse({
+            "status": "success",
+            "message": "Node analysis complete",
+            "data": analysis_results
+        })
+    
+    return JsonResponse({
+        "status": "error",
+        "message": "Invalid request method"
+    })
+
+@csrf_exempt
+def analyze_transactions_view(request):
+    """API endpoint for transaction analysis."""
+    if request.method == "POST":
+        wallet_address = request.POST.get("wallet_address", "").strip()
+        chain = request.POST.get("chain", "eth")
+        
+        if not wallet_address:
+            return JsonResponse({
+                "status": "error",
+                "message": "Wallet address is required"
+            })
+            
+        # Fetch transactions
+        transactions = fetch_transactions(wallet_address, chain)
+        
+        # Analyze transactions using the existing helper function
+        analysis_results = analyze_transactions(wallet_address, transactions)
+        
+        return JsonResponse({
+            "status": "success",
+            "message": "Analysis complete",
+            "data": analysis_results
+        })
+        
+    return JsonResponse({
+        "status": "error",
+        "message": "Invalid request method"
+    })
 
 def analyze_transactions(wallet_address, transactions):
     """Analyze transactions for suspicious patterns."""
