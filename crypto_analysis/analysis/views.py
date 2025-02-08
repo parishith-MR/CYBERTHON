@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 MORALIS_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImZmNmE5NmEzLWE5NjUtNDEwNy1iZGIyLTI5N2E2YTc4NzI2NSIsIm9yZ0lkIjoiNDI5NDYyIiwidXNlcklkIjoiNDQxNzQ5IiwidHlwZUlkIjoiY2E3YjA5N2YtYzE3Mi00MTIzLTg5MTQtMmI5MmUyNTM0MDFiIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3Mzg2ODczNzksImV4cCI6NDg5NDQ0NzM3OX0.8RLifPzimTbzeBqnY4Q9AiWb2GdyEIKExDv34m46If8"
 
+
 def fetch_transactions(wallet_address, chain="eth"):
     """Fetch transactions using Moralis API with enhanced error handling and debugging."""
     url = f"https://deep-index.moralis.io/api/v2/{wallet_address}?chain={chain}"
@@ -120,6 +121,25 @@ def generate_spider_graph(transactions, central_address, history=None):
     
     net = Network(height="600px", width="100%", directed=True, notebook=False)
     
+    net.html = """
+    <script>
+    network.on("click", function(params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            const node = network.body.data.nodes.get(nodeId);
+            if (node.custom_properties && node.custom_properties.address) {
+                // Send message to parent window
+                window.parent.postMessage({
+                    type: 'nodeClick',
+                    address: node.custom_properties.address
+                }, '*');
+            }
+        }
+    });
+    </script>
+    """ + net.html
+
+
     # Add navigation controls to the HTML
     net.html = """
     <div class="navigation-controls" style="position: absolute; top: 10px; left: 10px; z-index: 999;">
@@ -286,6 +306,7 @@ def generate_spider_graph(transactions, central_address, history=None):
         return False
 
 @csrf_exempt
+@csrf_exempt
 def analyze_node(request):
     """Handle requests to analyze specific nodes when clicked."""
     if request.method == "POST":
@@ -307,12 +328,19 @@ def analyze_node(request):
                 "data": {
                     "wallet_address": wallet_address,
                     "total_transactions": 0,
-                    "transaction_volume": 0
+                    "transaction_volume": 0,
+                    "graph": None,
+                    "analysis": {
+                        "total_transactions": 0,
+                        "transaction_volume": 0,
+                        "fraud_score": 0,
+                        "suspicious_activities": []
+                    }
                 }
             })
         
-        # Generate new visualization
-        graph_success = generate_spider_graph(transactions, wallet_address)
+        # Generate graph data
+        graph_data = generate_graph_data(transactions, wallet_address)
         
         # Analyze transactions
         analysis_results = analyze_transactions(wallet_address, transactions)
@@ -320,13 +348,64 @@ def analyze_node(request):
         return JsonResponse({
             "status": "success",
             "message": "Node analysis complete",
-            "data": analysis_results
+            "data": {
+                "graph": graph_data,
+                "analysis": analysis_results
+            }
         })
     
     return JsonResponse({
         "status": "error",
         "message": "Invalid request method"
     })
+
+def generate_graph_data(transactions, central_address):
+    """Generate graph data structure for visualization."""
+    nodes = []
+    edges = []
+    address_counts = {}
+    
+    # Add central node
+    nodes.append({
+        "id": central_address.lower(),
+        "label": f"Analyzed: {central_address[:8]}...",
+        "color": "#ff0000",
+        "size": 30,
+        "custom_properties": {"address": central_address.lower()}
+    })
+    
+    for tx in transactions:
+        sender = tx.get("from_address", "").lower()
+        receiver = tx.get("to_address", "").lower()
+        value = float(tx.get("value", "0")) / 10**18
+        
+        # Update address counts
+        address_counts[sender] = address_counts.get(sender, 0) + 1
+        address_counts[receiver] = address_counts.get(receiver, 0) + 1
+        
+        # Add nodes if they don't exist
+        for address in [sender, receiver]:
+            if not any(node["id"] == address for node in nodes):
+                nodes.append({
+                    "id": address,
+                    "label": f"{address[:8]}...",
+                    "color": "#1f77b4",
+                    "size": 20,
+                    "custom_properties": {"address": address}
+                })
+        
+        # Add edge
+        edges.append({
+            "from": sender,
+            "to": receiver,
+            "value": min(value, 10),
+            "title": f"{value:.4f} ETH"
+        })
+    
+    return {
+        "nodes": nodes,
+        "edges": edges
+    }
 
 @csrf_exempt
 def analyze_transactions_view(request):
@@ -359,7 +438,7 @@ def analyze_transactions_view(request):
     })
 
 def analyze_transactions(wallet_address, transactions):
-    """Analyze transactions for suspicious patterns."""
+    """Analyze transactions for suspicious patterns and generate a fraud score."""
     if not transactions:
         return {
             "wallet_address": wallet_address,
@@ -368,26 +447,54 @@ def analyze_transactions(wallet_address, transactions):
             "fraud_score": 0,
             "suspicious_activities": []
         }
-
-    total_volume = sum(float(tx.get("value", 0)) / 10**18 for tx in transactions)
     
-    # Calculate fraud score and detect patterns
+    total_volume = sum(float(tx.get("value", 0)) / 10**18 for tx in transactions)
+    transaction_count = len(transactions)
     fraud_score = 0
     suspicious_patterns = []
     
-    # Add your fraud detection logic here
-    if len(transactions) > 50:
-        fraud_score += 30
-        suspicious_patterns.append("High transaction volume detected")
+    # Example blacklisted addresses (Replace with real data)
+    blacklisted_addresses = {"0xabc123...", "0xdef456..."} 
     
-    # Cap the fraud score at 100
+    address_counts = {}
+    for tx in transactions:
+        sender = tx.get("from_address", "").lower()
+        receiver = tx.get("to_address", "").lower()
+        
+        address_counts[sender] = address_counts.get(sender, 0) + 1
+        address_counts[receiver] = address_counts.get(receiver, 0) + 1
+        
+        if sender in blacklisted_addresses or receiver in blacklisted_addresses:
+            fraud_score += 40
+            suspicious_patterns.append(f"Transaction with blacklisted address: {sender if sender in blacklisted_addresses else receiver}")
+        
+        if sender == receiver:
+            fraud_score += 20
+            suspicious_patterns.append("Self-transfer detected (potential mixing behavior)")
+    
+    # Detect rapid transaction bursts
+    if transaction_count > 50:
+        fraud_score += 30
+        suspicious_patterns.append("High transaction volume detected in a short period")
+    
+    # Identify suspicious spikes in transaction volume
+    if total_volume > 1000:
+        fraud_score += 25
+        suspicious_patterns.append("Unusual transaction volume detected (>1000 ETH)")
+    
+    # Check for transactions with multiple unique addresses (could indicate layering or mixing)
+    unique_addresses = len(address_counts)
+    if unique_addresses > 30:
+        fraud_score += 20
+        suspicious_patterns.append("Multiple unique transaction partners detected (possible layering activity)")
+    
+    # Cap fraud score at 100
     fraud_score = min(fraud_score, 100)
     
     return {
         "wallet_address": wallet_address,
-        "total_transactions": len(transactions),
+        "total_transactions": transaction_count,
         "transaction_volume": total_volume,
         "fraud_score": fraud_score,
         "suspicious_activities": suspicious_patterns
     }
-

@@ -39,6 +39,24 @@
             </div>
 
             <div id="results" class="hidden">
+                <!-- Navigation Controls -->
+                <div class="flex justify-end mb-4 gap-2">
+                    <button 
+                        id="backButton" 
+                        class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        ← Back
+                    </button>
+                    <button 
+                        id="forwardButton" 
+                        class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        Forward →
+                    </button>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div class="p-4 bg-gray-50 rounded">
                         <h3 class="font-semibold">Total Transactions</h3>
@@ -68,13 +86,18 @@
     </div>
 
     <script>
-    document.getElementById('analysisForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const form = e.target;
-        const walletAddress = form.wallet_address.value.trim();
-        
-        // Show loading, hide other sections
+    // History management
+    let addressHistory = [];
+    let currentIndex = -1;
+
+    // Update navigation buttons
+    function updateNavigationButtons() {
+        document.getElementById('backButton').disabled = currentIndex <= 0;
+        document.getElementById('forwardButton').disabled = currentIndex >= addressHistory.length - 1;
+    }
+
+    // Function to analyze wallet
+    async function analyzeWallet(walletAddress, updateHistory = true) {
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('error').classList.add('hidden');
         document.getElementById('results').classList.add('hidden');
@@ -91,47 +114,16 @@
             const data = await response.json();
             
             if (data.status === 'success' || data.status === 'warning') {
-                // Clear previous graph if no transactions
-                if (data.data.total_transactions === 0) {
-                    const graphFrame = document.getElementById('graphFrame');
-                    graphFrame.src = 'about:blank';
-                    document.getElementById('graphContainer').classList.add('hidden');
-                } else {
-                    // Update graph with new data
-                    const graphFrame = document.getElementById('graphFrame');
-                    graphFrame.src = '/static/graph.html?t=' + new Date().getTime(); // Add timestamp to prevent caching
-                    document.getElementById('graphContainer').classList.remove('hidden');
+                if (updateHistory) {
+                    // Update history
+                    addressHistory = addressHistory.slice(0, currentIndex + 1);
+                    addressHistory.push(walletAddress);
+                    currentIndex++;
+                    updateNavigationButtons();
                 }
-                
-                // Update results
-                document.getElementById('totalTransactions').textContent = data.data.total_transactions;
-                document.getElementById('transactionVolume').textContent = 
-                    data.data.transaction_volume.toFixed(4) + ' ETH';
-                document.getElementById('fraudScore').textContent = 
-                    data.data.fraud_score + '% Risk Level';
-                
-                // Update suspicious activities
-                const activitiesList = document.getElementById('activitiesList');
-                activitiesList.innerHTML = '';
-                if (data.data.suspicious_activities.length > 0) {
-                    data.data.suspicious_activities.forEach(activity => {
-                        const li = document.createElement('li');
-                        li.textContent = activity;
-                        activitiesList.appendChild(li);
-                    });
-                    document.getElementById('suspiciousActivities').classList.remove('hidden');
-                } else {
-                    document.getElementById('suspiciousActivities').classList.add('hidden');
-                }
-                
-                // Show results
-                document.getElementById('results').classList.remove('hidden');
-                
-                // Show warning if applicable
-                if (data.status === 'warning') {
-                    document.getElementById('error').textContent = data.message;
-                    document.getElementById('error').classList.remove('hidden');
-                }
+
+                // Update UI with results
+                updateUIWithResults(data);
             } else {
                 throw new Error(data.message);
             }
@@ -142,7 +134,77 @@
         } finally {
             document.getElementById('loading').classList.add('hidden');
         }
+    }
+
+    // Function to update UI with results
+    function updateUIWithResults(data) {
+        if (data.data.total_transactions === 0) {
+            const graphFrame = document.getElementById('graphFrame');
+            graphFrame.src = 'about:blank';
+            document.getElementById('graphContainer').classList.add('hidden');
+        } else {
+            const graphFrame = document.getElementById('graphFrame');
+            graphFrame.src = '/static/graph.html?t=' + new Date().getTime();
+            document.getElementById('graphContainer').classList.remove('hidden');
+        }
+        
+        document.getElementById('totalTransactions').textContent = data.data.total_transactions;
+        document.getElementById('transactionVolume').textContent = 
+            data.data.transaction_volume.toFixed(4) + ' ETH';
+        document.getElementById('fraudScore').textContent = 
+            data.data.fraud_score + '% Risk Level';
+        
+        const activitiesList = document.getElementById('activitiesList');
+        activitiesList.innerHTML = '';
+        if (data.data.suspicious_activities.length > 0) {
+            data.data.suspicious_activities.forEach(activity => {
+                const li = document.createElement('li');
+                li.textContent = activity;
+                activitiesList.appendChild(li);
+            });
+            document.getElementById('suspiciousActivities').classList.remove('hidden');
+        } else {
+            document.getElementById('suspiciousActivities').classList.add('hidden');
+        }
+        
+        document.getElementById('results').classList.remove('hidden');
+        
+        if (data.status === 'warning') {
+            document.getElementById('error').textContent = data.message;
+            document.getElementById('error').classList.remove('hidden');
+        }
+    }
+
+    // Event Listeners
+    document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const walletAddress = e.target.wallet_address.value.trim();
+        await analyzeWallet(walletAddress);
     });
-</script>
+
+    document.getElementById('backButton').addEventListener('click', async () => {
+        if (currentIndex > 0) {
+            currentIndex--;
+            await analyzeWallet(addressHistory[currentIndex], false);
+            updateNavigationButtons();
+        }
+    });
+
+    document.getElementById('forwardButton').addEventListener('click', async () => {
+        if (currentIndex < addressHistory.length - 1) {
+            currentIndex++;
+            await analyzeWallet(addressHistory[currentIndex], false);
+            updateNavigationButtons();
+        }
+    });
+
+    // Handle node clicks from the graph
+    window.addEventListener('message', async (event) => {
+        if (event.data.type === 'nodeClick') {
+            const address = event.data.address;
+            await analyzeWallet(address);
+        }
+    });
+    </script>
 </body>
 </html>
