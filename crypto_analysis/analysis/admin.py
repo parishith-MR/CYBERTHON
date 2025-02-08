@@ -5,9 +5,10 @@ from .models import WalletConnection, Transaction
 
 @admin.register(WalletConnection)
 class WalletConnectionAdmin(admin.ModelAdmin):
-    list_display = ('wallet_address', 'ip_address', 'connection_time')
-    search_fields = ('wallet_address', 'ip_address')
+    list_display = ('wallet_address', 'connection_time')
+    search_fields = ('wallet_address',)
     list_filter = ('connection_time', 'connection_type')
+
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):

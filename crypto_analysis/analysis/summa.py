@@ -55,29 +55,25 @@ def generate_spider_graph(transactions):
 def analyze_wallet(wallet_address, chain="eth"):
     """Analyze wallet transactions and detect fraudulent patterns."""
     transactions = fetch_transactions(wallet_address, chain)
-    suspicious_patterns = []
+
     # Example logic for computing fraud score
     fraud_score = 0  
     if len(transactions) > 50:
-        fraud_score += 30  # More transactions = higher risk     
+        fraud_score += 30  # More transactions = higher risk
+    if detect_suspicious_activity(wallet_address):
+        fraud_score += 20  # Suspicious activity detected
     if detect_blacklisted_interactions(wallet_address):
         fraud_score += 50  # Blacklisted address interaction = high risk
-        suspicious_patterns.append("Interaction with blacklisted wallets detected.")
     if detect_rapid_high_value(wallet_address):
         fraud_score += 15  # Structuring detected
-        suspicious_patterns.append("Rapid high-value transactions detected.")
     if detect_circular_transactions(wallet_address):
         fraud_score += 20  # Mixing detected
-        suspicious_patterns.append("Circular transactions detected.")
     if detect_tumbling_activity(wallet_address):
         fraud_score += 25  # Tumbling detected
-        suspicious_patterns.append("Tumbling/mixing activity detected.")
     if detect_chain_hopping(wallet_address):
         fraud_score += 30  # Cross-chain laundering
-        suspicious_patterns.append("Cross-chain laundering detected.")
     if detect_sudden_large_inflows(wallet_address):
         fraud_score += 40  # Money mule behavior
-        suspicious_patterns.append("Sudden large incoming transactions detected.")
     
     if fraud_score > 100:
         fraud_score = 100  # Max score cap
@@ -87,9 +83,25 @@ def analyze_wallet(wallet_address, chain="eth"):
         "total_transactions": len(transactions),
         "transaction_volume": sum(int(tx["value"]) / 10**18 for tx in transactions),
         "fraud_score": fraud_score,  # Send fraud score to frontend
-        "suspicious_activities": suspicious_patterns,
     }
 
+def detect_suspicious_activity(wallet_address):
+    """Detects unusual transaction patterns such as rapid high-value transfers or circular transactions."""
+    suspicious_patterns = []
+    if detect_rapid_high_value(wallet_address):
+        suspicious_patterns.append("Rapid high-value transactions detected.")
+    if detect_circular_transactions(wallet_address):
+        suspicious_patterns.append("Circular transactions detected.")
+    if detect_blacklisted_interactions(wallet_address):
+        suspicious_patterns.append("Interaction with blacklisted wallets detected.")
+    if detect_tumbling_activity(wallet_address):
+        suspicious_patterns.append("Tumbling/mixing activity detected.")
+    if detect_chain_hopping(wallet_address):
+        suspicious_patterns.append("Cross-chain laundering detected.")
+    if detect_sudden_large_inflows(wallet_address):
+        suspicious_patterns.append("Sudden large incoming transactions detected.")
+    
+    return suspicious_patterns
 
 # ✅ Fixed: Rapid High-Value Transactions (Structuring)
 def detect_rapid_high_value(wallet_address, threshold=5, time_window=10, min_value=1):
