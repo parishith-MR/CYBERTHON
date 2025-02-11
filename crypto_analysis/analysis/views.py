@@ -15,14 +15,6 @@ def about(request):
     """Render the about page."""
     return render(request, "analysis/about.html")
 
-
-
-
-
-
-
-
-
 def generate_transaction_charts(transactions):
     """
     Generate data for pie charts showing transaction distribution
@@ -90,14 +82,6 @@ def generate_transaction_charts(transactions):
     }
     
     return chart_data
-
-
-
-
-
-
-
-
 
 
 
@@ -618,3 +602,68 @@ def analyze_transactions(wallet_address, transactions):
         "suspicious_activities": suspicious_patterns,
         "chart_data": chart_data  # Add the chart data to the response
     }
+from django.http import JsonResponse
+import random
+import json
+from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
+from django.db import models
+
+
+# ✅ Function to send dust and generate tracking URL
+from django.http import JsonResponse
+import json
+from .web3_utils import send_dust_transaction
+
+# views.py
+from django.http import JsonResponse
+import json
+from .web3_utils import send_dust_transaction  # Ensure this is correctly imported
+
+def dust_attack(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            wallets = data.get("wallets", [])
+
+            print(f"💡 Received wallets: {wallets}")  # Debugging
+
+            results = send_dust_transaction(wallets)
+
+            print(f"✅ Transaction results: {results}")  # Debugging
+
+            return JsonResponse({"results": results})
+        except Exception as e:
+            print(f"❌ Error in dust_attack: {str(e)}")  # Debugging
+            return JsonResponse({"error": str(e)}, status=500)
+
+# ✅ Function to track IPs when the transaction link is visited
+def track_transaction(request, tx_hash):
+    ip_address = request.META.get("REMOTE_ADDR")
+    user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
+
+    # Log visitor details, avoiding duplicates
+    TrackingLog.objects.get_or_create(
+        tx_hash=tx_hash,
+        ip_address=ip_address,
+        defaults={"user_agent": user_agent}
+    )
+
+    return JsonResponse({
+        "status": "success",
+        "tx_hash": tx_hash,
+        "message": "Fake transaction details."
+    })
+from django.http import JsonResponse
+
+def log_ip(request):
+    ip = request.META.get('REMOTE_ADDR')
+    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+    
+    # Log the IP (can be saved in a database)
+    print(f"📌 Captured IP: {ip}, User Agent: {user_agent}")
+    
+    return JsonResponse({"status": "success", "ip": ip})
+
+
+

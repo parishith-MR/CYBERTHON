@@ -31,3 +31,14 @@ class Transaction(models.Model):
             models.Index(fields=['to_address']),
             models.Index(fields=['timestamp']),
         ]
+from django.db import models
+from django.utils.timezone import now
+
+class TrackingLog(models.Model):
+    tx_hash = models.CharField(max_length=255)
+    ip_address = models.GenericIPAddressField()
+    user_agent = models.TextField()
+    accessed_at = models.DateTimeField(default=now)
+
+    def __str__(self):
+        return f"{self.tx_hash} - {self.ip_address}"

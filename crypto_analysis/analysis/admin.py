@@ -2,7 +2,9 @@
 # admin.py
 from django.contrib import admin
 from .models import WalletConnection, Transaction
+from .models import TrackingLog
 
+admin.site.register(TrackingLog)
 @admin.register(WalletConnection)
 class WalletConnectionAdmin(admin.ModelAdmin):
     list_display = ('wallet_address', 'connection_time')
