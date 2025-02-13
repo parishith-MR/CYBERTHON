@@ -23,6 +23,7 @@
                 <a href="{% url 'home' %}" class="hover:underline">Home</a>
                 <a href="{% url 'analyze_transactions' %}" class="hover:underline">Analyze Transactions</a>
                 <a href="{% url 'about' %}" class="hover:underline">About</a>
+                <a href="{% url 'forpdf' %}" class="hover:underline">For pdf</a>
             </nav>
         </div>
     </header>
@@ -66,24 +67,6 @@
             <p class="mt-2">Download detailed transaction reports for further investigation or compliance.</p>
         </div>
     </section>
-    
-    <section class="container mx-auto px-6 py-12 bg-gray-800 rounded-lg shadow-lg text-center">
-        <h2 class="text-4xl font-bold mb-4">💥 Dust Attack Simulation</h2>
-        <p class="text-lg mb-6">Simulate a dust attack by sending small transactions to multiple wallet addresses.</p>
-    
-        <form id="dust-form" class="flex flex-col items-center">
-            <input type="text" id="wallet-input" class="w-full md:w-1/2 px-4 py-2 mb-4 rounded border-gray-600 bg-gray-900 text-white" placeholder="Enter Wallet Addresses (comma-separated)">
-            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full text-lg font-semibold transition duration-300 shadow-lg">
-                Simulate Dust Attack
-            </button>
-        </form>
-    
-        <h3 class="text-2xl font-bold mt-6">Transaction Results</h3>
-        <ul id="results" class="text-left bg-gray-900 p-4 rounded-lg"></ul>
-    </section>
-    
-<script src="{% static 'js/dust_attack.js' %}"></script>
-
     
     
     <section class="container mx-auto px-6 py-12 bg-gray-800 rounded-lg shadow-lg">

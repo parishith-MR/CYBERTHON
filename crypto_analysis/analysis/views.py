@@ -2,6 +2,7 @@ import requests
 import networkx as nx
 from django.shortcuts import render
 from django.http import JsonResponse
+from .models import TrackingLog
 from pyvis.network import Network
 from django.views.decorators.csrf import csrf_exempt
 
@@ -82,6 +83,95 @@ def generate_transaction_charts(transactions):
     }
     
     return chart_data
+
+def forpdf(request):
+    return render(request, 'analysis/forpdf.html')
+
+
+from django.http import JsonResponse
+import random
+import json
+from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
+from django.db import models
+
+
+# ✅ Function to send dust and generate tracking URL
+from django.http import JsonResponse
+import json
+from .web3_utils import send_dust_transaction
+
+# views.py
+from django.http import JsonResponse
+import json
+from .web3_utils import send_dust_transaction  # Ensure this is correctly imported
+
+def dust_attack(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            wallets = data.get("wallets", [])
+
+            print(f"💡 Received wallets: {wallets}")  # Debugging
+
+            results = send_dust_transaction(wallets)
+
+            print(f"✅ Transaction results: {results}")  # Debugging
+
+            return JsonResponse({"results": results})
+        except Exception as e:
+            print(f"❌ Error in dust_attack: {str(e)}")  # Debugging
+            return JsonResponse({"error": str(e)}, status=500)
+
+# ✅ Function to track IPs when the transaction link is visited
+def track_transaction(request, tx_hash):
+    ip_address = request.META.get("REMOTE_ADDR")
+    user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
+
+    # Log visitor details, avoiding duplicates
+    TrackingLog.objects.get_or_create(
+        tx_hash=tx_hash,
+        ip_address=ip_address,
+        defaults={"user_agent": user_agent}
+    )
+
+    return JsonResponse({
+        "status": "success",
+        "tx_hash": tx_hash,
+        "message": "Fake transaction details."
+    })
+from django.http import JsonResponse
+
+def log_ip(request):
+    ip = request.META.get('REMOTE_ADDR')
+    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+    
+    # Log the IP (can be saved in a database)
+    print(f"📌 Captured IP: {ip}, User Agent: {user_agent}")
+    
+    return JsonResponse({"status": "success", "ip": ip})
+
+# New view function for dust attack page
+def dust_attack_view(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            wallets = data.get("wallets", [])
+
+            print(f"💡 Received wallets: {wallets}")  # Debugging
+
+            results = send_dust_transaction(wallets)
+
+            print(f"✅ Transaction results: {results}")  # Debugging
+
+            return JsonResponse({"results": results})
+        except Exception as e:
+            print(f"❌ Error in dust_attack: {str(e)}")  # Debugging
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return render(request, "analysis/dust_attack.html")
+
+
 
 
 
@@ -487,58 +577,98 @@ def generate_graph_data(transactions, central_address):
 @csrf_exempt
 def analyze_transactions_view(request):
     """Enhanced analyze transactions view with better error handling."""
-    if request.method == "POST":
-        wallet_address = request.POST.get("wallet_address", "").strip()
-        chain = request.POST.get("chain", "eth")
-        
-        if not wallet_address:
-            return JsonResponse({
-                "status": "error",
-                "message": "Wallet address is required"
-            })
+    try:
+        if request.method == "POST":
+            # Get wallet address from POST data or JSON data
+            data = request.POST or json.loads(request.body.decode('utf-8'))
+            wallet_address = data.get("wallet_address", "").strip()
+            chain = data.get("chain", "eth")
             
-        if not is_valid_ethereum_address(wallet_address):
-            return JsonResponse({
-                "status": "error",
-                "message": "Invalid Ethereum address format"
-            })
-        
-        # Fetch transactions
-        transactions = fetch_transactions(wallet_address, chain)
-        
-        if not transactions:
-            return JsonResponse({
-                "status": "warning",
-                "message": "No transactions found for this wallet",
-                "data": {
+            if not wallet_address:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Wallet address is required"
+                })
+            
+            # Fetch transactions
+            transactions = fetch_transactions(wallet_address, chain)
+            
+            if not transactions:
+                return JsonResponse({
+                    "status": "warning",
+                    "message": "No transactions found for this wallet",
+                    "data": {
+                        "wallet_address": wallet_address,
+                        "total_transactions": 0,
+                        "transaction_volume": 0,
+                        "fraud_score": 0,
+                        "suspicious_activities": []
+                    }
+                })
+            
+            # Initialize analyzer
+            analyzer = CryptoAnalyzer()
+            
+            try:
+                # Extract features and calculate risk
+                features = analyzer.extract_advanced_features(transactions)
+                fraud_score = analyzer.predict_risk_score(transactions)
+                
+                # Generate visualization
+                chart_data = generate_transaction_charts(transactions)
+                
+                # Generate spider graph
+                graph_success = generate_spider_graph(transactions, central_address=wallet_address)
+                
+                analysis_results = {
                     "wallet_address": wallet_address,
-                    "total_transactions": 0,
-                    "transaction_volume": 0,
-                    "fraud_score": 0,
-                    "suspicious_activities": []
+                    "total_transactions": features['tx_count'],
+                    "transaction_volume": features['total_volume'],
+                    "fraud_score": fraud_score,
+                    "suspicious_activities": [],
+                    "chart_data": chart_data,
+                    "ml_features": features
                 }
-            })
-        
-        # Generate new visualization only if we have transactions
-        # Pass the wallet_address as central_address
-        graph_success = generate_spider_graph(transactions, central_address=wallet_address)
-        
-        # Analyze transactions
-        analysis_results = analyze_transactions(wallet_address, transactions)
-        
-        if not graph_success:
-            analysis_results["graph_error"] = "Failed to generate transaction graph"
-        
+                
+                # Add suspicious patterns
+                if features['tx_per_hour'] > 10:
+                    analysis_results["suspicious_activities"].append("High transaction frequency detected")
+                if features['avg_value'] > 100:
+                    analysis_results["suspicious_activities"].append("Large average transaction values detected")
+                if features['unique_addresses'] > 50:
+                    analysis_results["suspicious_activities"].append("Unusually high number of unique addresses")
+                
+                if not graph_success:
+                    analysis_results["graph_error"] = "Failed to generate transaction graph"
+                
+                return JsonResponse({
+                    "status": "success",
+                    "message": "Analysis complete!",
+                    "data": analysis_results
+                })
+                
+            except Exception as e:
+                print(f"Error in analysis: {str(e)}")
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Error analyzing transactions",
+                    "error": str(e)
+                }, status=500)
+            
+    except Exception as e:
+        print(f"Error in analyze_transactions_view: {str(e)}")
         return JsonResponse({
-            "status": "success",
-            "message": "Analysis complete!",
-            "data": analysis_results
-        })
+            "status": "error",
+            "message": "An error occurred while processing the request",
+            "error": str(e)
+        }, status=500)
     
     return render(request, "analysis/analyze_transactions.html")
 
+from .ml.crypto_analyzer import CryptoAnalyzer
+
 def analyze_transactions(wallet_address, transactions):
-    """Analyze transactions for suspicious patterns and generate a fraud score."""
+    """Analyze transactions using ML for fraud detection."""
     if not transactions:
         return {
             "wallet_address": wallet_address,
@@ -549,49 +679,31 @@ def analyze_transactions(wallet_address, transactions):
             "chart_data": None
         }
     
+    # Initialize ML analyzer
+    analyzer = CryptoAnalyzer()
+    
+    # Calculate basic metrics
     total_volume = sum(float(tx.get("value", 0)) / 10**18 for tx in transactions)
     transaction_count = len(transactions)
-    fraud_score = 0
+    
+    # Get ML-based risk score
+    fraud_score = analyzer.predict_risk_score(transactions)
+    
+    # Extract suspicious patterns
     suspicious_patterns = []
+    advanced_features = analyzer.extract_advanced_features(transactions)
     
-    # Example blacklisted addresses (Replace with real data)
-    blacklisted_addresses = {"0xabc123...", "0xdef456..."} 
+    # Define thresholds for suspicious activity
+    if advanced_features['tx_per_hour'] > 10:
+        suspicious_patterns.append("High transaction frequency detected")
     
-    address_counts = {}
-    for tx in transactions:
-        sender = tx.get("from_address", "").lower()
-        receiver = tx.get("to_address", "").lower()
+    if advanced_features['avg_value'] > 100:
+        suspicious_patterns.append("Large average transaction values detected")
         
-        address_counts[sender] = address_counts.get(sender, 0) + 1
-        address_counts[receiver] = address_counts.get(receiver, 0) + 1
-        
-        if sender in blacklisted_addresses or receiver in blacklisted_addresses:
-            fraud_score += 40
-            suspicious_patterns.append(f"Transaction with blacklisted address: {sender if sender in blacklisted_addresses else receiver}")
-        
-        if sender == receiver:
-            fraud_score += 20
-            suspicious_patterns.append("Self-transfer detected (potential mixing behavior)")
+    if advanced_features['unique_addresses'] > 50:
+        suspicious_patterns.append("Unusually high number of unique addresses")
     
-    # Detect rapid transaction bursts
-    if transaction_count > 50:
-        fraud_score += 30
-        suspicious_patterns.append("High transaction volume detected in a short period")
-    
-    # Identify suspicious spikes in transaction volume
-    if total_volume > 1000:
-        fraud_score += 25
-        suspicious_patterns.append("Unusual transaction volume detected (>1000 ETH)")
-    
-    # Check for transactions with multiple unique addresses (could indicate layering or mixing)
-    unique_addresses = len(address_counts)
-    if unique_addresses > 30:
-        fraud_score += 20
-        suspicious_patterns.append("Multiple unique transaction partners detected (possible layering activity)")
-    
-    # Cap fraud score at 100
-    fraud_score = min(fraud_score, 100)
-    
+    # Generate visualization data
     chart_data = generate_transaction_charts(transactions)
     
     return {
@@ -600,70 +712,7 @@ def analyze_transactions(wallet_address, transactions):
         "transaction_volume": total_volume,
         "fraud_score": fraud_score,
         "suspicious_activities": suspicious_patterns,
-        "chart_data": chart_data  # Add the chart data to the response
+        "chart_data": chart_data,
+        "ml_features": advanced_features
     }
-from django.http import JsonResponse
-import random
-import json
-from django.shortcuts import get_object_or_404
-from django.utils.timezone import now
-from django.db import models
-
-
-# ✅ Function to send dust and generate tracking URL
-from django.http import JsonResponse
-import json
-from .web3_utils import send_dust_transaction
-
-# views.py
-from django.http import JsonResponse
-import json
-from .web3_utils import send_dust_transaction  # Ensure this is correctly imported
-
-def dust_attack(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            wallets = data.get("wallets", [])
-
-            print(f"💡 Received wallets: {wallets}")  # Debugging
-
-            results = send_dust_transaction(wallets)
-
-            print(f"✅ Transaction results: {results}")  # Debugging
-
-            return JsonResponse({"results": results})
-        except Exception as e:
-            print(f"❌ Error in dust_attack: {str(e)}")  # Debugging
-            return JsonResponse({"error": str(e)}, status=500)
-
-# ✅ Function to track IPs when the transaction link is visited
-def track_transaction(request, tx_hash):
-    ip_address = request.META.get("REMOTE_ADDR")
-    user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
-
-    # Log visitor details, avoiding duplicates
-    TrackingLog.objects.get_or_create(
-        tx_hash=tx_hash,
-        ip_address=ip_address,
-        defaults={"user_agent": user_agent}
-    )
-
-    return JsonResponse({
-        "status": "success",
-        "tx_hash": tx_hash,
-        "message": "Fake transaction details."
-    })
-from django.http import JsonResponse
-
-def log_ip(request):
-    ip = request.META.get('REMOTE_ADDR')
-    user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
-    
-    # Log the IP (can be saved in a database)
-    print(f"📌 Captured IP: {ip}, User Agent: {user_agent}")
-    
-    return JsonResponse({"status": "success", "ip": ip})
-
-
 
