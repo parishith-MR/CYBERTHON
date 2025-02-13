@@ -7,4 +7,5 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('analysis.urls')),  # Changed to your actual app name 'analysis'
+    
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

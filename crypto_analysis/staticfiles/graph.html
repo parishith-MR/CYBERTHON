@@ -1,0 +1,163 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#ff0000", "custom_properties": {"address": "0x32be343b94f860124dc4fee278fdcbd38c102d88"}, "id": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "label": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "shape": "dot", "size": 30, "title": "Analyzed Wallet: 0x32Be343B94f860124dC4fEe278FDCBD38C102D88"}, {"color": "#1f77b4", "custom_properties": {"address": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8"}, "id": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8", "label": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8", "shape": "dot", "title": "Address: 0x8fca4ade3a517133ff23ca55cdaea29c78c990b8\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x1ab4973a48dc892cd9971ece8e01dcc7688f8f23"}, "id": "0x1ab4973a48dc892cd9971ece8e01dcc7688f8f23", "label": "0x1ab4973a48dc892cd9971ece8e01dcc7688f8f23", "shape": "dot", "title": "Address: 0x1ab4973a48dc892cd9971ece8e01dcc7688f8f23\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x58b704065b7aff3ed351052f8560019e05925023"}, "id": "0x58b704065b7aff3ed351052f8560019e05925023", "label": "0x58b704065b7aff3ed351052f8560019e05925023", "shape": "dot", "title": "Address: 0x58b704065b7aff3ed351052f8560019e05925023\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x21a31ee1afc51d94c2efccaa2092ad1028285549"}, "id": "0x21a31ee1afc51d94c2efccaa2092ad1028285549", "label": "0x21a31ee1afc51d94c2efccaa2092ad1028285549", "shape": "dot", "title": "Address: 0x21a31ee1afc51d94c2efccaa2092ad1028285549\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x2899f338d1b7eeac72fba161ea3bb798c68abda8"}, "id": "0x2899f338d1b7eeac72fba161ea3bb798c68abda8", "label": "0x2899f338d1b7eeac72fba161ea3bb798c68abda8", "shape": "dot", "title": "Address: 0x2899f338d1b7eeac72fba161ea3bb798c68abda8\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"}, "id": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "label": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "shape": "dot", "title": "Address: 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0xc944e90c64b2c07662a292be6244bdf05cda44a7"}, "id": "0xc944e90c64b2c07662a292be6244bdf05cda44a7", "label": "0xc944e90c64b2c07662a292be6244bdf05cda44a7", "shape": "dot", "title": "Address: 0xc944e90c64b2c07662a292be6244bdf05cda44a7\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"}, "id": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "label": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "shape": "dot", "title": "Address: 0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0xa1faa113cbe53436df28ff0aee54275c13b40975"}, "id": "0xa1faa113cbe53436df28ff0aee54275c13b40975", "label": "0xa1faa113cbe53436df28ff0aee54275c13b40975", "shape": "dot", "title": "Address: 0xa1faa113cbe53436df28ff0aee54275c13b40975\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce"}, "id": "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce", "label": "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce", "shape": "dot", "title": "Address: 0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba"}, "id": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "label": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "shape": "dot", "title": "Address: 0xa910f92acdaf488fa6ef02174fb86208ad7722ba\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0xdac17f958d2ee523a2206206994597c13d831ec7"}, "id": "0xdac17f958d2ee523a2206206994597c13d831ec7", "label": "0xdac17f958d2ee523a2206206994597c13d831ec7", "shape": "dot", "title": "Address: 0xdac17f958d2ee523a2206206994597c13d831ec7\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x514910771af9ca656af840dff83e8264ecf986ca"}, "id": "0x514910771af9ca656af840dff83e8264ecf986ca", "label": "0x514910771af9ca656af840dff83e8264ecf986ca", "shape": "dot", "title": "Address: 0x514910771af9ca656af840dff83e8264ecf986ca\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x1e917e764bc34d3bc313fe8159a6bd9d9ffd450d"}, "id": "0x1e917e764bc34d3bc313fe8159a6bd9d9ffd450d", "label": "0x1e917e764bc34d3bc313fe8159a6bd9d9ffd450d", "shape": "dot", "title": "Address: 0x1e917e764bc34d3bc313fe8159a6bd9d9ffd450d\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x58b6a8a3302369daec383334672404ee733ab239"}, "id": "0x58b6a8a3302369daec383334672404ee733ab239", "label": "0x58b6a8a3302369daec383334672404ee733ab239", "shape": "dot", "title": "Address: 0x58b6a8a3302369daec383334672404ee733ab239\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0xea674fdde714fd979de3edf0f56aa9716b898ec8"}, "id": "0xea674fdde714fd979de3edf0f56aa9716b898ec8", "label": "0xea674fdde714fd979de3edf0f56aa9716b898ec8", "shape": "dot", "title": "Address: 0xea674fdde714fd979de3edf0f56aa9716b898ec8\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5"}, "id": "0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5", "label": "0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5", "shape": "dot", "title": "Address: 0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5\nTransactions: 1"}, {"color": "#1f77b4", "custom_properties": {"address": "0x032df2f06293ebad1411a19c051508979d469fae"}, "id": "0x032df2f06293ebad1411a19c051508979d469fae", "label": "0x032df2f06293ebad1411a19c051508979d469fae", "shape": "dot", "title": "Address: 0x032df2f06293ebad1411a19c051508979d469fae\nTransactions: 1"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0225 ETH\nTransactions: 1", "to": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8", "value": 0.022452710855437593}, {"arrows": "to", "from": "0x1ab4973a48dc892cd9971ece8e01dcc7688f8f23", "title": "Total: 0.0177 ETH\nTransactions: 1", "to": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "value": 0.01769679}, {"arrows": "to", "from": "0x58b704065b7aff3ed351052f8560019e05925023", "title": "Total: 0.0019 ETH\nTransactions: 1", "to": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "value": 0.0018962}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0492 ETH\nTransactions: 2", "to": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8", "value": 0.049190915837103805}, {"arrows": "to", "from": "0x21a31ee1afc51d94c2efccaa2092ad1028285549", "title": "Total: 0.0246 ETH\nTransactions: 1", "to": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "value": 0.0245737}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 2.2740 ETH\nTransactions: 3", "to": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8", "value": 2.2739516559279758}, {"arrows": "to", "from": "0x2899f338d1b7eeac72fba161ea3bb798c68abda8", "title": "Total: 0.0035 ETH\nTransactions: 1", "to": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "value": 0.00349}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 3.8118 ETH\nTransactions: 4", "to": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8", "value": 3.8117692874613227}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0xc944e90c64b2c07662a292be6244bdf05cda44a7", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0xa1faa113cbe53436df28ff0aee54275c13b40975", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 42.2650 ETH\nTransactions: 5", "to": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0288 ETH\nTransactions: 1", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 0.02875163124435076}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 61.5558 ETH\nTransactions: 6", "to": "0x8fca4ade3a517133ff23ca55cdaea29c78c990b8", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0xdac17f958d2ee523a2206206994597c13d831ec7", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0x514910771af9ca656af840dff83e8264ecf986ca", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 20.6916 ETH\nTransactions: 2", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 38.8608 ETH\nTransactions: 3", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 91.0125 ETH\nTransactions: 4", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 123.8421 ETH\nTransactions: 5", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 255.4925 ETH\nTransactions: 6", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 272.2645 ETH\nTransactions: 7", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 629.0817 ETH\nTransactions: 8", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 644.8127 ETH\nTransactions: 9", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 667.1452 ETH\nTransactions: 10", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 685.6519 ETH\nTransactions: 11", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 699.0495 ETH\nTransactions: 12", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 705.7234 ETH\nTransactions: 13", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 772.3251 ETH\nTransactions: 14", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0x1e917e764bc34d3bc313fe8159a6bd9d9ffd450d", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 792.8821 ETH\nTransactions: 15", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 818.6439 ETH\nTransactions: 16", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 841.0610 ETH\nTransactions: 17", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 1199.7132 ETH\nTransactions: 18", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 1357.7254 ETH\nTransactions: 19", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0x58b6a8a3302369daec383334672404ee733ab239", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 1446.8815 ETH\nTransactions: 20", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 1461.4198 ETH\nTransactions: 21", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 1532.5543 ETH\nTransactions: 22", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 1941.1505 ETH\nTransactions: 23", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 1953.4521 ETH\nTransactions: 24", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 2411.6619 ETH\nTransactions: 25", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 2", "to": "0xdac17f958d2ee523a2206206994597c13d831ec7", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 3266.6500 ETH\nTransactions: 26", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 3338.0216 ETH\nTransactions: 27", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 3369.6310 ETH\nTransactions: 28", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 3374.1023 ETH\nTransactions: 29", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 3385.3540 ETH\nTransactions: 30", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 3444.8247 ETH\nTransactions: 31", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 3591.5540 ETH\nTransactions: 32", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 4112.2299 ETH\nTransactions: 33", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 4350.3210 ETH\nTransactions: 34", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 4426.3328 ETH\nTransactions: 35", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 4626.7700 ETH\nTransactions: 36", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 5298.1045 ETH\nTransactions: 37", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 5341.4845 ETH\nTransactions: 38", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 6246.7034 ETH\nTransactions: 39", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 6537.0177 ETH\nTransactions: 40", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 8124.4399 ETH\nTransactions: 41", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 8788.6441 ETH\nTransactions: 42", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 11304.6811 ETH\nTransactions: 43", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 11458.4500 ETH\nTransactions: 44", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 11563.0359 ETH\nTransactions: 45", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 11578.8297 ETH\nTransactions: 46", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 11699.9977 ETH\nTransactions: 47", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0xea674fdde714fd979de3edf0f56aa9716b898ec8", "title": "Total: 0.0061 ETH\nTransactions: 1", "to": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "value": 0.006070074807473477}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 12046.6034 ETH\nTransactions: 48", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 13959.3110 ETH\nTransactions: 49", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 14149.9026 ETH\nTransactions: 50", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5", "title": "Total: 0.0092 ETH\nTransactions: 1", "to": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "value": 0.00922144948509599}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 14538.3440 ETH\nTransactions: 51", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 15147.2547 ETH\nTransactions: 52", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 15679.1438 ETH\nTransactions: 53", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 16179.8342 ETH\nTransactions: 54", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 16784.6110 ETH\nTransactions: 55", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 16861.6470 ETH\nTransactions: 56", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 17421.2721 ETH\nTransactions: 57", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 17525.1060 ETH\nTransactions: 58", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 17641.7020 ETH\nTransactions: 59", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 18048.4644 ETH\nTransactions: 60", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 18415.9183 ETH\nTransactions: 61", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 19532.1791 ETH\nTransactions: 62", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 19978.5620 ETH\nTransactions: 63", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 20761.0904 ETH\nTransactions: 64", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 21207.0522 ETH\nTransactions: 65", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 21269.9008 ETH\nTransactions: 66", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x032df2f06293ebad1411a19c051508979d469fae", "title": "Total: 0.0000 ETH\nTransactions: 1", "to": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "value": 1e-05}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 21654.5405 ETH\nTransactions: 67", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 21840.2218 ETH\nTransactions: 68", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 22805.2319 ETH\nTransactions: 69", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 22842.2131 ETH\nTransactions: 70", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 3", "to": "0xdac17f958d2ee523a2206206994597c13d831ec7", "value": 0.0}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 0.0000 ETH\nTransactions: 4", "to": "0xdac17f958d2ee523a2206206994597c13d831ec7", "value": 0.0}, {"arrows": "to", "from": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "title": "Total: 0.0065 ETH\nTransactions: 1", "to": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "value": 0.0064778316784895}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 22904.8613 ETH\nTransactions: 71", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 23799.5187 ETH\nTransactions: 72", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 24204.8217 ETH\nTransactions: 73", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}, {"arrows": "to", "from": "0x32be343b94f860124dc4fee278fdcbd38c102d88", "title": "Total: 24361.4719 ETH\nTransactions: 74", "to": "0xa910f92acdaf488fa6ef02174fb86208ad7722ba", "value": 10}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "hover": true,
+        "keyboard": {
+            "bindToWindow": true,
+            "enabled": true,
+            "speed": {
+                "x": 10,
+                "y": 10,
+                "zoom": 0.1
+            }
+        },
+        "navigationButtons": true
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

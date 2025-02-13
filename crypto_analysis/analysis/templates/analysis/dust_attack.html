@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dust Attack - CryptoTrace</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-200">
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-4 shadow-lg">
+        <div class="container mx-auto px-6 flex items-center justify-between">
+            <div class="flex items-center">
+                <img src="{% static 'images/curr_logo.png' %}" alt="Logo" class="h-12 w-12 rounded-full shadow-lg mr-3">
+                <h1 class="text-3xl font-extrabold">CryptoTrace</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="{% url 'home' %}" class="hover:underline">Home</a>
+                <a href="{% url 'analyze_transactions' %}" class="hover:underline">Analyze Transactions</a>
+                <a href="{% url 'dust_attack' %}" class="hover:underline">Dust Attack</a>
+                <a href="{% url 'forpdf' %}" class="hover:underline">For pdf</a>
+                <a href="{% url 'about' %}" class="hover:underline">About</a>
+            </nav>
+        </div>
+    </header>
+    
+    <section class="container mx-auto px-6 py-12">
+        <h2 class="text-5xl font-bold mb-4">Dust Attack</h2>
+        <p class="text-2xl mb-4">Send dust transactions to multiple wallets.</p>
+        <form id="dustAttackForm" class="mb-6">
+            <div class="flex flex-col gap-4">
+                <textarea 
+                    name="wallets" 
+                    id="wallets"
+                    placeholder="Enter wallet addresses (one per line)"
+                    class="flex-1 border rounded px-4 py-2 text-gray-900"
+                    rows="10"
+                    required
+                ></textarea>
+                <button 
+                    type="submit"
+                    class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-300"
+                >
+                    Send Dust
+                </button>
+            </div>
+        </form>
+
+        <div id="loading" class="hidden">
+            <div class="flex items-center justify-center space-x-2">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                <p>Sending dust transactions...</p>
+            </div>
+        </div>
+
+        <div id="error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        </div>
+
+        <div id="results" class="hidden">
+            <h3 class="font-semibold text-xl mb-2">Results</h3>
+            <ul id="resultsList" class="list-disc pl-5 space-y-2"></ul>
+        </div>
+    </section>
+
+    <footer class="bg-gray-900 text-center py-6 mt-12 text-gray-400 border-t border-gray-800">
+        <p>&copy; 2025 CryptoTrace | All Rights Reserved.</p>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('dustAttackForm');
+            const sendButton = form.querySelector('button[type="submit"]');
+            
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Disable button and show loading state
+                sendButton.disabled = true;
+                sendButton.textContent = 'Sending...';
+                
+                try {
+                    const formData = new FormData(form);
+                    const wallets = formData.get('wallets').split('\n').map(wallet => wallet.trim()).filter(wallet => wallet);
+                    
+                    const response = await fetch('/dust_attack/', {
+                        method: 'POST',
+                        body: JSON.stringify({ wallets }),
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.results) {
+                        // Update the UI with results
+                        displayResults(data.results);
+                    } else {
+                        // Show error message
+                        displayError(data.error || 'An error occurred while sending dust transactions.');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    displayError('An error occurred while sending dust transactions. Please try again.');
+                } finally {
+                    // Re-enable button
+                    sendButton.disabled = false;
+                    sendButton.textContent = 'Send Dust';
+                }
+            });
+            
+            function displayResults(results) {
+                const resultsList = document.getElementById('resultsList');
+                resultsList.innerHTML = '';
+                results.forEach(result => {
+                    const li = document.createElement('li');
+                    li.textContent = result;
+                    resultsList.appendChild(li);
+                });
+                
+                document.getElementById('results').classList.remove('hidden');
+            }
+            
+            function displayError(message) {
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    errorDiv.classList.add('hidden');
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>

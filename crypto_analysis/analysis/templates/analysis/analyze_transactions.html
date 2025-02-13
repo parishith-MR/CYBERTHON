@@ -1,0 +1,366 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyze Transactions - CryptoTrace</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" href="{% static 'images/curr_logo.png' %}" type="image/png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .faq-answer { display: none; }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-4 shadow-lg">
+        <div class="container mx-auto px-6 flex items-center justify-between">
+            <div class="flex items-center">
+                <img src="{% static 'images/curr_logo.png' %}" alt="Logo" class="h-12 w-12 rounded-full shadow-lg mr-3">
+                <h1 class="text-3xl font-extrabold">CryptoTrace</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="{% url 'home' %}" class="hover:underline">Home</a>
+                <a href="{% url 'analyze_transactions' %}" class="hover:underline">Analyze Transactions</a>
+                <a href="{% url 'forpdf' %}" class="hover:underline">For pdf</a>
+                <a href="{% url 'about' %}" class="hover:underline">About</a>
+            </nav>
+        </div>
+    </header>
+    
+    <section class="container mx-auto px-6 py-12">
+        <h2 class="text-5xl font-bold mb-4">Analyze Cryptocurrency Transactions</h2>
+        <p class="text-2xl mb-4">Enter a wallet address to start analyzing its transactions and connections.</p>
+        <form id="analysisForm" class="mb-6">
+            <div class="flex gap-4">
+                <input 
+                    type="text" 
+                    name="wallet_address" 
+                    id="wallet_address"
+                    placeholder="Enter wallet address"
+                    class="flex-1 border rounded px-4 py-2 text-gray-900"
+                    required
+                >
+                <button 
+                    type="submit"
+                    class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-300"
+                >
+                    Analyze
+                </button>
+            </div>
+        </form>
+
+        <div id="loading" class="hidden">
+            <div class="flex items-center justify-center space-x-2">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                <p>Analyzing wallet...</p>
+            </div>
+        </div>
+
+        <div id="error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        </div>
+
+        <div id="results" class="hidden">
+            <!-- Navigation Controls -->
+            <div class="flex justify-end mb-4 gap-2">
+                <button 
+                    id="backButton" 
+                    class="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition duration-300"
+                    disabled
+                >
+                    ← Back
+                </button>
+                <button 
+                    id="forwardButton" 
+                    class="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition duration-300"
+                    disabled
+                >
+                    Forward →
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="p-4 bg-gray-800 rounded shadow-lg">
+                    <h3 class="font-semibold text-xl mb-2">Total Transactions</h3>
+                    <p id="totalTransactions" class="text-2xl font-bold"></p>
+                </div>
+                <div class="p-4 bg-gray-800 rounded shadow-lg">
+                    <h3 class="font-semibold text-xl mb-2">Transaction Volume</h3>
+                    <p id="transactionVolume" class="text-2xl font-bold"></p>
+                </div>
+                <div class="p-4 bg-gray-800 rounded shadow-lg">
+                    <h3 class="font-semibold text-xl mb-2">Risk Score</h3>
+                    <p id="fraudScore" class="text-2xl font-bold"></p>
+                </div>
+            </div>
+
+            <div id="suspiciousActivities" class="mb-6 hidden">
+                <h3 class="font-semibold text-xl mb-2">Suspicious Activities</h3>
+                <ul id="activitiesList" class="list-disc pl-5 space-y-2"></ul>
+            </div>
+
+            <div id="graphContainer" class="border border-gray-700 rounded-lg mb-8 bg-gray-800">
+                <h3 class="font-semibold p-4 border-b border-gray-700">Transaction Graph</h3>
+                <iframe id="graphFrame" src="" width="100%" height="600" frameborder="0"></iframe>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="senderCountChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="receiverCountChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="senderAmountChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="receiverAmountChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-gray-900 text-center py-6 mt-12 text-gray-400 border-t border-gray-800">
+        <p>&copy; 2025 CryptoTrace | All Rights Reserved.</p>
+    </footer>
+    
+    <script>
+        // Store chart instances globally
+        let chartInstances = {
+            senderCountChart: null,
+            receiverCountChart: null,
+            senderAmountChart: null,
+            receiverAmountChart: null
+        };
+
+        // Function to destroy existing charts
+        function destroyExistingCharts() {
+            Object.keys(chartInstances).forEach(chartId => {
+                if (chartInstances[chartId]) {
+                    chartInstances[chartId].destroy();
+                    chartInstances[chartId] = null;
+                }
+            });
+        }
+
+        // Function to create pie chart
+        function createPieChart(elementId, data, title) {
+            const ctx = document.getElementById(elementId).getContext('2d');
+            
+            // If a chart instance exists for this element, destroy it
+            if (chartInstances[elementId]) {
+                chartInstances[elementId].destroy();
+            }
+            
+            // Create new chart instance
+            chartInstances[elementId] = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: data.map(item => item.address),
+                    datasets: [{
+                        data: data.map(item => item.value),
+                        backgroundColor: [
+                            '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: title,
+                            color: 'white',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'white',
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            return chartInstances[elementId];
+        }
+
+        // Function to update charts
+        function updateCharts(chartData) {
+            // Destroy existing charts first
+            destroyExistingCharts();
+            
+            // Create new charts with a small delay to ensure DOM is ready
+            setTimeout(() => {
+                createPieChart('senderCountChart', chartData.sender_counts, 'Transaction Count by Sender');
+                createPieChart('receiverCountChart', chartData.receiver_counts, 'Transaction Count by Receiver');
+                createPieChart('senderAmountChart', chartData.sender_amounts, 'Transaction Amount by Sender (ETH)');
+                createPieChart('receiverAmountChart', chartData.receiver_amounts, 'Transaction Amount by Receiver (ETH)');
+            }, 0);
+        }
+
+        // History management
+        let addressHistory = [];
+        let currentIndex = -1;
+
+        // Update navigation buttons
+        function updateNavigationButtons() {
+            document.getElementById('backButton').disabled = currentIndex <= 0;
+            document.getElementById('forwardButton').disabled = currentIndex >= addressHistory.length - 1;
+        }
+
+        // Function to analyze wallet
+        async function analyzeWallet(walletAddress, updateHistory = true) {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('error').classList.add('hidden');
+            document.getElementById('results').classList.add('hidden');
+            
+            try {
+                const response = await fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: `wallet_address=${walletAddress}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success' || data.status === 'warning') {
+                    if (updateHistory) {
+                        // Update history
+                        addressHistory = addressHistory.slice(0, currentIndex + 1);
+                        addressHistory.push(walletAddress);
+                        currentIndex++;
+                        updateNavigationButtons();
+                    }
+
+                    // Update UI with results
+                    updateUIWithResults(data);
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                document.getElementById('error').textContent = error.message || 'Analysis failed';
+                document.getElementById('error').classList.remove('hidden');
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        // Function to update UI with results
+        function updateUIWithResults(data) {
+            if (data.data.total_transactions === 0) {
+                document.getElementById('graphFrame').src = 'about:blank';
+                document.getElementById('graphContainer').classList.add('hidden');
+            } else {
+                document.getElementById('graphFrame').src = '/static/graph.html?t=' + new Date().getTime();
+                document.getElementById('graphContainer').classList.remove('hidden');
+            }
+            
+            document.getElementById('totalTransactions').textContent = data.data.total_transactions;
+            document.getElementById('transactionVolume').textContent = 
+                data.data.transaction_volume.toFixed(4) + ' ETH';
+            document.getElementById('fraudScore').textContent = 
+                data.data.fraud_score + '% Risk Level';
+            
+            const activitiesList = document.getElementById('activitiesList');
+            activitiesList.innerHTML = '';
+            if (data.data.suspicious_activities.length > 0) {
+                data.data.suspicious_activities.forEach(activity => {
+                    const li = document.createElement('li');
+                    li.textContent = activity;
+                    activitiesList.appendChild(li);
+                });
+                document.getElementById('suspiciousActivities').classList.remove('hidden');
+            } else {
+                document.getElementById('suspiciousActivities').classList.add('hidden');
+            }
+
+            // Update charts if chart data is available
+            if (data.data.chart_data) {
+                updateCharts(data.data.chart_data);
+            }
+            
+            document.getElementById('results').classList.remove('hidden');
+            
+            if (data.status === 'warning') {
+                document.getElementById('error').textContent = data.message;
+                document.getElementById('error').classList.remove('hidden');
+            }
+        }
+
+        // Function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Event Listeners
+        document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const walletAddress = e.target.wallet_address.value.trim();
+            await analyzeWallet(walletAddress);
+        });
+
+        document.getElementById('backButton').addEventListener('click', async () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                await analyzeWallet(addressHistory[currentIndex], false);
+                updateNavigationButtons();
+            }
+        });
+
+        document.getElementById('forwardButton').addEventListener('click', async () => {
+            if (currentIndex < addressHistory.length - 1) {
+                currentIndex++;
+                await analyzeWallet(addressHistory[currentIndex], false);
+                updateNavigationButtons();
+            }
+        });
+
+        // Handle node clicks from the graph
+        window.addEventListener('message', async (event) => {
+            if (event.data.type === 'nodeClick') {
+                const address = event.data.address;
+                await analyzeWallet(address);
+            }
+        });
+    </script>
+</body>
+</html>
